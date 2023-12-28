@@ -1,0 +1,94 @@
+---
+title: "Yen Forecast"
+format: pdf
+---
+
+# Introduction
+
+Japan for decades has stood on the global stage with the third largest economy, albeit far behind the USA and China. However this year Germany has overtaken Japan in GDP, and the current value of the Japanese Yen (JPY) is plummeting. This is likely due to many factors, including aging population, rural depopulation, and numerous other socioeconomic factors.
+
+Using fiscal data such as the historical value of the Yen and other metrics such as M2, real M2, M1, exchange rates, can we predict the real value of the yen over time, to create an arbitrage opportunity?
+
+
+# Methods part 1
+
+I began my collecting as much data as I could that I thought could be relevant. This included 26 datasets consisting of multiple different factors such as percentage of population of 65, gdp growth, gni, m1, and many more.\newline
+![Datasets](\Users\ryanj\Downloads\mgsc310_final\yen_forecast\yen_forecast\images\dataFiles.png){width=80}
+
+
+Unfortunately not all of the data came from the same place, but I was able to join all of the datasets by year.\newline
+![The First Dataframe](\Users\ryanj\Downloads\mgsc310_final\yen_forecast\yen_forecast\images\firstDataframe.png){width=600}
+
+
+The next problem that arose was the sheer number of null values. Some variables had 28 rows of null values, which presents a problem when we only have 55 years (rows) of data.\newline
+![Null Values Counts](\Users\ryanj\Downloads\mgsc310_final\yen_forecast\yen_forecast\images\nullValues.png){width=100}
+
+
+I knew this would be an issue but I wanted to see which variables were important to keep so for now I just removed all of the null values and proceeded.
+
+The initial plan was to use a random forest model, I was particularly interested in the decision tree based models and their hyperparameter tuning. Random Forests are also known for their high accuracy. I was aware of the difficulties of creating a predictor model especially on a target variable like exchange rates, so I wanted to be able to test and adjust the model as much as I could. That being said we will quickly see a pivot from the random forest. 
+
+As I was testing my hyperparameters I quickly found a large disparity between the training and testing scores. \newline
+![train test scores difference](\Users\ryanj\Downloads\mgsc310_final\yen_forecast\yen_forecast\images\train_test_difference.png){width=300}
+
+
+|        | MSE   | Train R2 | Test R2 |
+|--------|-------|----------|---------|
+| Scores | 51.36 | 0.98     | 0.46    |
+
+In addition, we can see the train r2 value is far too high. This is a sign of major overfitting, so I decided to look into different models. The model I decided on was an extreme gradient boosting tree. 
+
+I chose this model for a few different reasons. Our main goal is to reduce overfitting, and one of the best ways to do that is by reducing model complexity. The individual trees in an xgboost model are not built to their full depth which helps reduce overfitting. Additionally the gradient boosting models improve their accuracy with each tree trained so we will likely see improvements in accuracy.\newline
+![train test scores difference](\Users\ryanj\Downloads\mgsc310_final\yen_forecast\yen_forecast\images\xgboostLearningRate.png){width=300}
+
+|        | MSE  | Train R2 | Test R2 |
+|--------|------|----------|---------|
+| Scores | 6.79 | 0.90     | 0.93    |
+
+
+And we do, we have brought both the training and test r2 values much closer together, and the MSE is near zero. However, these results are still signs of overfitting. While we were able to improve the results slightly by switching models, the real problem lies within the datasets themselves!\newline
+![First Predictor](\Users\ryanj\Downloads\mgsc310_final\yen_forecast\yen_forecast\images\firstPredictor.png){width=600}
+
+As you can see our prediction from the actual value (test) is pretty far off!
+\pagebreak
+
+
+# Methods part 2
+
+First we must look at how each predictor impacted our prediction. We can use some feature importance graphs to visualize this: \newline
+![Feature Coorelation](\Users\ryanj\Downloads\mgsc310_final\yen_forecast\yen_forecast\images\coorHeatmap.png){width=600}
+
+As we can see there are lots of variables that have very little impact on the prediction itself. We can remove both these variables that have little importance and the variables that have many null values. The first will reduce our model complexity even further, to reduce overfitting. The second will add more rows and give our model more data to train on! \newline
+![Second Dataframe](\Users\ryanj\Downloads\mgsc310_final\yen_forecast\yen_forecast\images\secondDataframe.png){width=500}
+
+We ended up with only 8 predictors afterwards (from 25 before!) and 51 rows. We can then proceed with our hyperparameter tuning and test our model: \newline
+![train test difference](\Users\ryanj\Downloads\mgsc310_final\yen_forecast\yen_forecast\images\xgboostLearningRate2.png){width=300}
+|        | MSE     | Train R2 | Test R2 |
+|--------|---------|----------|---------|
+| Scores | 1685.63 | 0.88     | 0.79    |
+
+Our results become much more realistic! \pagebreak
+
+# Results
+
+Our second xgboost model with our cleaned data performed much better than our first random forest model, and has far less overfitting. \newline
+![Second Predictor](\Users\ryanj\Downloads\mgsc310_final\yen_forecast\yen_forecast\images\secondPredictor.png){width=600}
+
+We can see there are far less predictors, but the only ones that remain have far more coorelation! \newline
+![Feature Importance Heatmap](\Users\ryanj\Downloads\mgsc310_final\yen_forecast\yen_forecast\images\coorHeatmap2.png){width=500}
+
+|        | MSE     | Train R2 | Test R2 |
+|--------|---------|----------|---------|
+| Scores | 1685.63 | 0.88     | 0.79    |
+
+
+
+# Discussion/Reflection
+
+We were able to significantly improve the performance of our forecasting model through a few different methods. Even with hyperparameter tuning our initial random forest model had problems with overfitting, so in order to reduce complexity we switched to an extreme boosting gradient tree model. In addition to this and the hyperparamter tuning, we also cleaned much of our data. We initially had about 27 rows and 25 predictor variables, but after some feature importance analysis we decided to reduce the predictors to 8, and which in turn increased the rows to 51. These two combined provided a much better prediction. However there are still some issues:
+
+Plotting the predictions from the actual values, the predictions do get notably worse the farther it gets from the training data \newline
+![predictions vs actual](\Users\ryanj\Downloads\mgsc310_final\yen_forecast\yen_forecast\images\predictions1.png){width=350}
+
+While I the fact that the prediction gets worse the farther ahead into the future it goes is completely reasonable, I think it is still telling of how difficult it is to predict a target variable like exchange rate. Even with as many as 25 predictors (which I had expected to have more importance) there simply was not a lot of coorelation between the variables and their patterns. In addition, we had as little as 55 years worth of data to use, which is likely not enough to have an accurate forecasting model. 
+
