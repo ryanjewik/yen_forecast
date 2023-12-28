@@ -63,6 +63,7 @@ As we can see there are lots of variables that have very little impact on the pr
 
 We ended up with only 8 predictors afterwards (from 25 before!) and 51 rows. We can then proceed with our hyperparameter tuning and test our model: \newline
 ![train test difference](\Users\ryanj\Downloads\mgsc310_final\yen_forecast\yen_forecast\images\xgboostLearningRate2.png){width=300}
+
 |        | MSE     | Train R2 | Test R2 |
 |--------|---------|----------|---------|
 | Scores | 1685.63 | 0.88     | 0.79    |
